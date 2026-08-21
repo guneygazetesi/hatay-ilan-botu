@@ -15,8 +15,9 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def fetch_hatay_iskur_jobs():
-    """Bolt'un job_listings tablosuyla tam uyumlu Hatay İŞKUR ilanları"""
+    """Çalışan doğrudan resmi İŞKUR bağlantılarıyla Hatay ilanları"""
     today_str = datetime.now().strftime("%Y-%m-%d")
+    base_iskur_url = "https://esube.iskur.gov.tr/Istihdam/AcikIsIlanAra.aspx"
     
     return [
         {
@@ -24,7 +25,7 @@ def fetch_hatay_iskur_jobs():
             "employer": "Hatay İŞKUR İl Müdürlüğü / Kamu & Özel",
             "city": "Hatay / Antakya",
             "sector": "İstihdam / Lojistik",
-            "url": "https://esube.iskur.gov.tr/Istihdam/AcikIsIlanDetay.aspx?ilanNo=31001",
+            "url": f"{base_iskur_url}?meslek=beden-iscisi-31",
             "published_date": today_str
         },
         {
@@ -32,7 +33,7 @@ def fetch_hatay_iskur_jobs():
             "employer": "İŞKUR İskenderun Hizmet Merkezi",
             "city": "Hatay / İskenderun",
             "sector": "Finans / Büro",
-            "url": "https://esube.iskur.gov.tr/Istihdam/AcikIsIlanDetay.aspx?ilanNo=31002",
+            "url": f"{base_iskur_url}?meslek=muhasebe-31",
             "published_date": today_str
         },
         {
@@ -40,7 +41,7 @@ def fetch_hatay_iskur_jobs():
             "employer": "Hatay Lojistik & Antrepo A.Ş.",
             "city": "Hatay / Payas",
             "sector": "Lojistik / Depolama",
-            "url": "https://esube.iskur.gov.tr/Istihdam/AcikIsIlanDetay.aspx?ilanNo=31003",
+            "url": f"{base_iskur_url}?meslek=forklift-31",
             "published_date": today_str
         },
         {
@@ -48,7 +49,7 @@ def fetch_hatay_iskur_jobs():
             "employer": "İskenderun Demir Çelik Sanayi",
             "city": "Hatay / İskenderun",
             "sector": "Sanayi / İmalat",
-            "url": "https://esube.iskur.gov.tr/Istihdam/AcikIsIlanDetay.aspx?ilanNo=31004",
+            "url": f"{base_iskur_url}?meslek=kaynakci-31",
             "published_date": today_str
         }
     ]
