@@ -15,8 +15,7 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def fetch_sample_jobs():
     """
-    Hatay kamu ilanları için veri şablonu.
-    İlerleyen aşamada spesifik kurum sitelerinin HTML yapısına göre burası genişletilebilir.
+    Bolt'un Supabase tablosundaki zorunlu 'position_type' ve diğer tüm alanlarla uyumlu veri şablonu.
     """
     sample_data = [
         {
@@ -24,6 +23,7 @@ def fetch_sample_jobs():
             "institution": "Hatay Mustafa Kemal Üniversitesi",
             "institution_type": "Üniversite",
             "district": "Antakya",
+            "position_type": "Sözleşmeli Personel",
             "category": "Sözleşmeli Personel",
             "position_count": 30,
             "deadline": "2026-09-30T23:59:59Z",
@@ -36,6 +36,7 @@ def fetch_sample_jobs():
             "institution": "Hatay Büyükşehir Belediyesi",
             "institution_type": "Belediye",
             "district": "Tüm Hatay",
+            "position_type": "Memur",
             "category": "Memur",
             "position_count": 50,
             "deadline": "2026-10-15T17:00:00Z",
@@ -56,7 +57,7 @@ def sync_jobs():
         
         if not existing.data:
             supabase.table("jobs").insert(job).execute()
-            print(f"[EKLEMDİ] {job['title']}")
+            print(f"[EKLENDİ] {job['title']}")
         else:
             print(f"[ZATEN MEVCUT] {job['title']}")
 
