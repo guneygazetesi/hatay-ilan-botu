@@ -3,7 +3,6 @@ import urllib3
 from supabase import create_client
 from datetime import datetime
 
-# SSL uyarılarını gizle
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -14,62 +13,45 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-def fetch_hatay_iskur_jobs():
-    """Çalışan doğrudan resmi İŞKUR bağlantılarıyla Hatay ilanları"""
+DISTRICTS = [
+    ("Hatay İl Geneli Tüm Açık İş İlanları", "İŞKUR Hatay İl Müdürlüğü", "Hatay / Tümü", "Tüm Sektörler", "https://esube.iskur.gov.tr/Istihdam/AcikIsIlanAra.aspx?il=31"),
+    ("Antakya İŞKUR İş İlanları", "İŞKUR Antakya Hizmet Merkezi", "Hatay / Antakya", "İlçe Geneli İlanlar", "https://esube.iskur.gov.tr/Istihdam/AcikIsIlanAra.aspx?il=31&ilce=Antakya"),
+    ("İskenderun İŞKUR İş İlanları", "İŞKUR İskenderun Hizmet Merkezi", "Hatay / İskenderun", "Sanayi, Liman ve Ticaret", "https://esube.iskur.gov.tr/Istihdam/AcikIsIlanAra.aspx?il=31&ilce=Iskenderun"),
+    ("Defne İŞKUR İş İlanları", "İŞKUR Hatay İl Müdürlüğü", "Hatay / Defne", "Hizmet ve Ticaret", "https://esube.iskur.gov.tr/Istihdam/AcikIsIlanAra.aspx?il=31&ilce=Defne"),
+    ("Dörtyol İŞKUR İş İlanları", "İŞKUR Dörtyol Hizmet Merkezi", "Hatay / Dörtyol", "Sanayi, Narenciye ve Lojistik", "https://esube.iskur.gov.tr/Istihdam/AcikIsIlanAra.aspx?il=31&ilce=Dortyol"),
+    ("Samandağ İŞKUR İş İlanları", "İŞKUR Hatay İl Müdürlüğü", "Hatay / Samandağ", "Tarım, Turizm ve Hizmet", "https://esube.iskur.gov.tr/Istihdam/AcikIsIlanAra.aspx?il=31&ilce=Samandag"),
+    ("Kırıkhan İŞKUR İş İlanları", "İŞKUR Kırıkhan Hizmet Merkezi", "Hatay / Kırıkhan", "Tarım, İmalat ve Ticaret", "https://esube.iskur.gov.tr/Istihdam/AcikIsIlanAra.aspx?il=31&ilce=Kirikhan"),
+    ("Reyhanlı İŞKUR İş İlanları", "İŞKUR Reyhanlı Hizmet Merkezi", "Hatay / Reyhanlı", "Tarım, Lojistik ve Ticaret", "https://esube.iskur.gov.tr/Istihdam/AcikIsIlanAra.aspx?il=31&ilce=Reyhanli"),
+    ("Arsuz İŞKUR İş İlanları", "İŞKUR İskenderun Hizmet Merkezi", "Hatay / Arsuz", "Turizm, Hizmet ve Tarım", "https://esube.iskur.gov.tr/Istihdam/AcikIsIlanAra.aspx?il=31&ilce=Arsuz"),
+    ("Payas İŞKUR İş İlanları", "İŞKUR Dörtyol Hizmet Merkezi", "Hatay / Payas", "Ağır Sanayi, Metal ve Lojistik", "https://esube.iskur.gov.tr/Istihdam/AcikIsIlanAra.aspx?il=31&ilce=Payas"),
+    ("Erzin İŞKUR İş İlanları", "İŞKUR Dörtyol Hizmet Merkezi", "Hatay / Erzin", "Narenciye, Sanayi ve Termal Turizm", "https://esube.iskur.gov.tr/Istihdam/AcikIsIlanAra.aspx?il=31&ilce=Erzin"),
+    ("Altınözü İŞKUR İş İlanları", "İŞKUR Hatay İl Müdürlüğü", "Hatay / Altınözü", "Zeytincilik, Tarım ve Hizmet", "https://esube.iskur.gov.tr/Istihdam/AcikIsIlanAra.aspx?il=31&ilce=Altinozu"),
+    ("Hassa İŞKUR İş İlanları", "İŞKUR Kırıkhan Hizmet Merkezi", "Hatay / Hassa", "Tarım, Madencilik ve İmalat", "https://esube.iskur.gov.tr/Istihdam/AcikIsIlanAra.aspx?il=31&ilce=Hassa"),
+    ("Belen İŞKUR İş İlanları", "İŞKUR İskenderun Hizmet Merkezi", "Hatay / Belen", "Lojistik, Ulaşım ve Hizmet", "https://esube.iskur.gov.tr/Istihdam/AcikIsIlanAra.aspx?il=31&ilce=Belen"),
+    ("Yayladağı İŞKUR İş İlanları", "İŞKUR Hatay İl Müdürlüğü", "Hatay / Yayladağı", "Tarım, Hayvancılık ve Ticaret", "https://esube.iskur.gov.tr/Istihdam/AcikIsIlanAra.aspx?il=31&ilce=Yayladagi"),
+    ("Kumlu İŞKUR İş İlanları", "İŞKUR Reyhanlı Hizmet Merkezi", "Hatay / Kumlu", "Tarım ve Hayvancılık", "https://esube.iskur.gov.tr/Istihdam/AcikIsIlanAra.aspx?il=31&ilce=Kumlu")
+]
+
+def sync_district_portals():
+    print("Hatay il ve tüm ilçelerinin İŞKUR portalları eşitleniyor...")
     today_str = datetime.now().strftime("%Y-%m-%d")
-    base_iskur_url = "https://esube.iskur.gov.tr/Istihdam/AcikIsIlanAra.aspx"
     
-    return [
-        {
-            "title": "Beden İşçisi (Genel) - Hatay",
-            "employer": "Hatay İŞKUR İl Müdürlüğü / Kamu & Özel",
-            "city": "Hatay / Antakya",
-            "sector": "İstihdam / Lojistik",
-            "url": f"{base_iskur_url}?meslek=beden-iscisi-31",
-            "published_date": today_str
-        },
-        {
-            "title": "Ön Muhasebeci / Büro Görevlisi",
-            "employer": "İŞKUR İskenderun Hizmet Merkezi",
-            "city": "Hatay / İskenderun",
-            "sector": "Finans / Büro",
-            "url": f"{base_iskur_url}?meslek=muhasebe-31",
-            "published_date": today_str
-        },
-        {
-            "title": "Forklift Operatörü / Depo Elemanı",
-            "employer": "Hatay Lojistik & Antrepo A.Ş.",
-            "city": "Hatay / Payas",
-            "sector": "Lojistik / Depolama",
-            "url": f"{base_iskur_url}?meslek=forklift-31",
-            "published_date": today_str
-        },
-        {
-            "title": "Kaynakçı / Metal İşleri Ustası",
-            "employer": "İskenderun Demir Çelik Sanayi",
-            "city": "Hatay / İskenderun",
-            "sector": "Sanayi / İmalat",
-            "url": f"{base_iskur_url}?meslek=kaynakci-31",
+    for title, employer, city, sector, url in DISTRICTS:
+        item = {
+            "title": title,
+            "employer": employer,
+            "city": city,
+            "sector": sector,
+            "url": url,
             "published_date": today_str
         }
-    ]
-
-def sync_jobs():
-    print("Hatay İŞKUR verileri job_listings tablosuna eşitleniyor...")
-    jobs = fetch_hatay_iskur_jobs()
-    
-    added = 0
-    for job in jobs:
-        # url üzerinden mükerrer kontrolü
-        existing = supabase.table("job_listings").select("id").eq("url", job["url"]).execute()
+        existing = supabase.table("job_listings").select("id").eq("url", url).execute()
         if not existing.data:
-            supabase.table("job_listings").insert(job).execute()
-            print(f"[EKLENDİ]: {job['title']}")
-            added += 1
+            supabase.table("job_listings").insert(item).execute()
+            print(f"[EKLENDİ]: {title}")
         else:
-            print(f"[ZATEN VAR]: {job['title']}")
-            
-    print(f"Tamamlandı. job_listings tablosuna eklenen yeni ilan: {added}")
+            supabase.table("job_listings").update(item).eq("url", url).execute()
+            print(f"[GÜNCELLENDİ]: {title}")
 
 if __name__ == "__main__":
-    sync_jobs()
+    sync_district_portals()
