@@ -1,0 +1,29 @@
+name: Haftalık Hatay İlan Tarayıcısı
+
+on:
+  schedule:
+    # Her Pazartesi sabah saat 08:00'de (UTC 05:00) çalışır
+    - cron: '0 5 * * 1'
+  workflow_dispatch: # Manuel çalıştırma butonu
+
+jobs:
+  run-scraper:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Depoyu Kopyala
+        uses: actions/checkout@v4
+
+      - name: Python Kur
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Gerekli Paketleri Yükle
+        run: |
+          pip install requests beautifulsoup4 supabase
+
+      - name: Tarayıcıyı Çalıştır
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python scraper.py
