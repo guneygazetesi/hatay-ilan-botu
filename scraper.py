@@ -1,5 +1,6 @@
 import os
 import requests
+import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
 from supabase import create_client
 from datetime import datetime, timedelta
@@ -13,104 +14,177 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# Hatay ile ilgili aranacak konum kelimeleri
-HATAY_KEYWORDS = ["hatay", "antakya", "iskenderun", "defne", "dörtyol", "kırıkhan", "samandağ", "reyhanlı"]
+# Hatay ve ilçeleri için filtre anahtar kelimeleri
+HATAY_KEYWORDS = [
+    "hatay", "antakya", "iskenderun", "defne", "dörtyol", 
+    "kırıkhan", "samandağ", "reyhanlı", "payas", "erzin", 
+    "altınözü", "hassa", "belen", "kumlu", "yayladağı", "hmkü", "mku", "iste"
+]
 
-def scrape_kamu_ilan_portal():
+def clean_text(html_content):
+    """HTML etiketlerini temizler ve sade metne dönüştürür."""
+    if not html_content:
+        return ""
+    soup = BeautifulSoup(html_content, "html.parser")
+    return soup.get_text(separator=" ", strip=True)
+
+def detect_district(text):
+    """Metin içinden Hatay ilçesini tespit eder."""
+    text_lower = text.lower()
+    for kw in HATAY_KEYWORDS:
+        if kw in text_lower and kw not in ["hatay", "hmkü", "mku", "iste"]:
+            return kw.capitalize()
+    return "Tüm Hatay"
+
+def detect_institution_type(text):
+    """Kurum türünü belirler."""
+    t = text.lower()
+    if "üniversite" in t or "rektörlük" in t or "fakülte" in t:
+        return "Üniversite"
+    if "belediye" in t:
+        return "Belediye"
+    if "bakanlık" in t or "valilik" in t or "kaymakamlık" in t or "müdürlük" in t:
+        return "Bakanlık/Valilik"
+    return "Kamu Kurumu"
+
+def detect_position_type(text):
+    """Kadro türünü belirler."""
+    t = text.lower()
+    if "akademik" in t or "öğretim üyesi" in t or "araştırma görevlisi" in t:
+        return "Akademik Personel"
+    if "sözleşmeli" in t or "4/b" in t:
+        return "Sözleşmeli Personel"
+    if "işçi" in t or "sürekli işçi" in t:
+        return "Sürekli İşçi"
+    if "memur" in t:
+        return "Memur"
+    return "Sözleşmeli Personel"
+
+def scrape_resmi_gazete_rss():
     """
-    Kamu İlan Portalındaki ilanları tarar ve Hatay ile ilgili olanları süzer.
+    Resmi Gazete Çeşitli İlanlar (Kamu Personel Alımları) XML/RSS Akışını Tarar.
     """
-    url = "https://kamuilan.sbb.gov.tr/"
+    found_jobs = []
+    # Resmi Gazete İlan RSS Kaynağı
+    rss_urls = [
+        "https://www.resmigazete.gov.tr/rss/ilanlar.xml",
+        "https://www.resmigazete.gov.tr/rss/cesitli-ilanlar.xml"
+    ]
+    
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     }
-    
+
+    for url in rss_urls:
+        try:
+            res = requests.get(url, headers=headers, timeout=15)
+            if res.status_code == 200:
+                root = ET.fromstring(res.content)
+                items = root.findall(".//item")
+                
+                for item in items:
+                    title = item.find("title").text if item.find("title") is not None else ""
+                    link = item.find("link").text if item.find("link") is not None else ""
+                    description = item.find("description").text if item.find("description") is not None else ""
+                    pub_date = item.find("pubDate").text if item.find("pubDate") is not None else ""
+                    
+                    full_content = f"{title} {description}".lower()
+                    
+                    # Hatay anahtar kelimesi geçiyor mu?
+                    if any(kw in full_content for kw in HATAY_KEYWORDS):
+                        clean_desc = clean_text(description)
+                        found_jobs.append({
+                            "title": title[:180],
+                            "institution": title.split("-")[0].strip() if "-" in title else "Hatay Kamu Kurumu",
+                            "institution_type": detect_institution_type(title),
+                            "district": detect_district(full_content),
+                            "position_type": detect_position_type(full_content),
+                            "category": detect_position_type(full_content),
+                            "position_count": 1,
+                            "deadline": (datetime.now() + timedelta(days=15)).isoformat(),
+                            "details": clean_desc if clean_desc else f"Resmi ilan detayları: {title}",
+                            "official_url": link.strip(),
+                            "is_active": True
+                        })
+        except Exception as e:
+            print(f"RSS Tarama Uyarısı ({url}): {e}")
+            
+    return found_jobs
+
+def scrape_kamuilan_api():
+    """
+    Kamu İlan Portalı arka plan JSON veri endpoint'ini doğrudan sorgular.
+    """
     found_jobs = []
+    # Kamu İlan API endpoint'i
+    api_url = "https://kamuilan.sbb.gov.tr/api/ilanlar"
+    headers = {
+        "User-Agent": "Mozilla/5.0",
+        "Accept": "application/json"
+    }
     
     try:
-        response = requests.get(url, headers=headers, timeout=15)
-        if response.status_code == 200:
-            soup = BeautifulSoup(response.text, 'html.parser')
-            # Sayfadaki tüm ilan linklerini/kartlarını tara
-            cards = soup.find_all(['div', 'a', 'tr'], class_=lambda x: x and ('ilan' in x.lower() or 'card' in x.lower()))
+        res = requests.get(api_url, headers=headers, timeout=15)
+        if res.status_code == 200:
+            data = res.json()
+            ilan_listesi = data if isinstance(data, list) else data.get("data", [])
             
-            for card in cards:
-                text_content = card.get_text().lower()
-                # Hatay anahtar kelimelerinden biri geçiyor mu kontrol et
-                if any(keyword in text_content for keyword in HATAY_KEYWORDS):
-                    title_elem = card.find(['h2', 'h3', 'h4', 'strong', 'a'])
-                    title = title_elem.get_text(strip=True) if title_elem else "Hatay Kamu Personel Alım İlanı"
-                    
-                    link_elem = card if card.name == 'a' else card.find('a')
-                    official_url = link_elem['href'] if link_elem and link_elem.has_attr('href') else url
-                    if not official_url.startswith('http'):
-                        official_url = f"https://kamuilan.sbb.gov.tr/{official_url.lstrip('/')}"
-
+            for ilan in ilan_listesi:
+                title = ilan.get("baslik") or ilan.get("title") or ""
+                kurum = ilan.get("kurumAdi") or ilan.get("institution") or ""
+                detay = ilan.get("aciklama") or ilan.get("details") or ""
+                ilan_id = ilan.get("id") or ilan.get("ilanNo") or ""
+                
+                full_text = f"{title} {kurum} {detay}".lower()
+                
+                if any(kw in full_text for kw in HATAY_KEYWORDS):
+                    official_url = f"https://kamuilan.sbb.gov.tr/ilan-detay?id={ilan_id}" if ilan_id else "https://kamuilan.sbb.gov.tr"
                     found_jobs.append({
-                        "title": title[:150],
-                        "institution": "Kamu Kurumu (Hatay)",
-                        "institution_type": "Bakanlık/Valilik",
-                        "district": "Hatay",
-                        "position_type": "Sözleşmeli / Memur",
-                        "category": "Kamu Personeli",
-                        "position_count": 1,
+                        "title": title[:180],
+                        "institution": kurum if kurum else "Kamu Kurumu",
+                        "institution_type": detect_institution_type(kurum),
+                        "district": detect_district(full_text),
+                        "position_type": detect_position_type(full_text),
+                        "category": detect_position_type(full_text),
+                        "position_count": ilan.get("kontenjanSayisi", 1),
                         "deadline": (datetime.now() + timedelta(days=15)).isoformat(),
-                        "details": f"İlan detayları için resmi kaynağı ziyaret ediniz: {title}",
+                        "details": clean_text(detay),
                         "official_url": official_url,
                         "is_active": True
                     })
     except Exception as e:
-        print(f"Tarama hatası: {e}")
+        print(f"Kamu İlan API Uyarısı: {e}")
         
     return found_jobs
 
 def sync_jobs():
-    print("Canlı ilan taraması başlatılıyor...")
-    scraped_jobs = scrape_kamu_ilan_portal()
+    print("Canlı Resmi Gazete & Kamu İlan API tarayıcısı başlatılıyor...")
     
-    # Eğer canlı siteden içerik çekilemezse varsayılan Hatay ilan setini hazır tut
-    if not scraped_jobs:
-        print("Siteden yeni ilan yakalanamadı, yedek dinamik ilan seti kullanılıyor.")
-        scraped_jobs = [
-            {
-                "title": "Hatay Valiliği İl AFAD Müdürlüğü Personel Alımı",
-                "institution": "Hatay Valiliği",
-                "institution_type": "Bakanlık/Valilik",
-                "district": "Antakya",
-                "position_type": "Sözleşmeli Personel",
-                "category": "Kamu Personeli",
-                "position_count": 15,
-                "deadline": "2026-09-10T17:00:00Z",
-                "details": "Hatay Valiliği bünyesinde görevlendirilmek üzere büro ve saha personeli alımı.",
-                "official_url": "https://www.hatay.gov.tr/afad-personel-alimi-2026",
-                "is_active": True
-            },
-            {
-                "title": "İskenderun Teknik Üniversitesi (İSTE) Akademik Kadro İlanı",
-                "institution": "İskenderun Teknik Üniversitesi",
-                "institution_type": "Üniversite",
-                "district": "İskenderun",
-                "position_type": "Akademik Personel",
-                "category": "Akademik Personel",
-                "position_count": 8,
-                "deadline": "2026-09-25T23:59:59Z",
-                "details": "İskenderun Teknik Üniversitesi çeşitli fakültelerine öğretim üyesi ve elemanı alacaktır.",
-                "official_url": "https://iste.edu.tr/duyuru/akademik-kadro-2026",
-                "is_active": True
-            }
-        ]
+    live_jobs = []
+    # 1. Kaynak: Resmi Gazete RSS
+    live_jobs.extend(scrape_resmi_gazete_rss())
+    # 2. Kaynak: Kamu İlan API
+    live_jobs.extend(scrape_kamuilan_api())
+    
+    print(f"Canlı kaynaklardan {len(live_jobs)} adet Hatay ilanı tespit edildi.")
+    
+    if not live_jobs:
+        print("Bugün için yayında olan aktif yeni bir Hatay ilanı bulunamadı (Tüm kaynaklar güncel).")
+        return
 
-    print(f"Toplam {len(scraped_jobs)} ilan işleniyor...")
-
-    for job in scraped_jobs:
-        # official_url üzerinden mükerrer kontrolü
+    added_count = 0
+    for job in live_jobs:
+        # Tekillik kontrolü: Sadece yeni olanları ekle
         existing = supabase.table("jobs").select("id").eq("official_url", job["official_url"]).execute()
         
         if not existing.data:
             supabase.table("jobs").insert(job).execute()
-            print(f"[CANLI EKLENDİ] {job['title']}")
+            print(f"[YENİ CANLI İLAN EKLENDİ]: {job['title']}")
+            added_count += 1
         else:
-            print(f"[ZATEN MEVCUT] {job['title']}")
+            print(f"[ZATEN EKLENMİŞ]: {job['title']}")
+            
+    print(f"İşlem tamamlandı. Eklenen yeni ilan sayısı: {added_count}")
 
 if __name__ == "__main__":
     sync_jobs()
