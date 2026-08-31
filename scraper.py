@@ -16,22 +16,22 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 ISKUR_URL = "https://esube.iskur.gov.tr/Istihdam/AcikIsIlanAra.aspx?il=31"
 
 DISTRICTS = [
-    ("Hatay İl Geneli Tüm Açık İş İlanları", "İŞKUR Hatay İl Müdürlüğü", "Hatay / İl Geneli", "Tüm Sektörler & Meslekler"),
-    ("Antakya İŞKUR Açık İş İlanları", "İŞKUR Antakya Hizmet Merkezi", "Hatay / Antakya", "Merkez İlçe & Çevresi"),
-    ("İskenderun İŞKUR Açık İş İlanları", "İŞKUR İskenderun Hizmet Merkezi", "Hatay / İskenderun", "Sanayi, Liman ve Ticaret"),
-    ("Defne İŞKUR Açık İş İlanları", "İŞKUR Hatay İl Müdürlüğü", "Hatay / Defne", "Hizmet ve Ticaret"),
-    ("Dörtyol İŞKUR Açık İş İlanları", "İŞKUR Dörtyol Hizmet Merkezi", "Hatay / Dörtyol", "Sanayi, Narenciye ve Lojistik"),
-    ("Samandağ İŞKUR Açık İş İlanları", "İŞKUR Hatay İl Müdürlüğü", "Hatay / Samandağ", "Tarım, Turizm ve Hizmet"),
-    ("Kırıkhan İŞKUR Açık İş İlanları", "İŞKUR Kırıkhan Hizmet Merkezi", "Hatay / Kırıkhan", "Tarım, İmalat ve Ticaret"),
-    ("Reyhanlı İŞKUR Açık İş İlanları", "İŞKUR Reyhanlı Hizmet Merkezi", "Hatay / Reyhanlı", "Tarım, Lojistik ve Ticaret"),
-    ("Arsuz İŞKUR Açık İş İlanları", "İŞKUR İskenderun Hizmet Merkezi", "Hatay / Arsuz", "Turizm, Hizmet ve Tarım"),
-    ("Payas İŞKUR Açık İş İlanları", "İŞKUR Dörtyol Hizmet Merkezi", "Hatay / Payas", "Ağır Sanayi, Metal ve Lojistik"),
-    ("Erzin İŞKUR Açık İş İlanları", "İŞKUR Dörtyol Hizmet Merkezi", "Hatay / Erzin", "Narenciye, Sanayi ve Turizm"),
-    ("Altınözü İŞKUR Açık İş İlanları", "İŞKUR Hatay İl Müdürlüğü", "Hatay / Altınözü", "Zeytincilik, Tarım ve Hizmet"),
-    ("Hassa İŞKUR Açık İş İlanları", "İŞKUR Kırıkhan Hizmet Merkezi", "Hatay / Hassa", "Tarım, Madencilik ve İmalat"),
-    ("Belen İŞKUR Açık İş İlanları", "İŞKUR İskenderun Hizmet Merkezi", "Hatay / Belen", "Lojistik, Ulaşım ve Hizmet"),
-    ("Yayladağı İŞKUR Açık İş İlanları", "İŞKUR Hatay İl Müdürlüğü", "Hatay / Yayladağı", "Tarım, Hayvancılık ve Ticaret"),
-    ("Kumlu İŞKUR Açık İş İlanları", "İŞKUR Reyhanlı Hizmet Merkezi", "Hatay / Kumlu", "Tarım ve Hayvancılık")
+    ("Hatay İl Geneli Tüm Açık İş İlanları", "Hatay Güncel İş İlanları", "Hatay / İl Geneli", "Tüm Sektörler & Meslekler"),
+    ("Antakya Bölgesi Açık Pozisyonlar", "Antakya Bölgesi", "Hatay / Antakya", "Merkez İlçe & Çevresi"),
+    ("İskenderun Bölgesi Açık Pozisyonları", "İskenderun Bölgesi", "Hatay / İskenderun", "Sanayi, Liman ve Ticaret"),
+    ("Defne Bölgesi Açık Pozisyonlar", "Defne Bölgesi", "Hatay / Defne", "Hizmet ve Ticaret"),
+    ("Dörtyol Bölgesi Açık Pozisyonlar", "Dörtyol Bölgesi", "Hatay / Dörtyol", "Sanayi, Narenciye ve Lojistik"),
+    ("Samandağ Bölgesi Açık Pozisyonlar", "Samandağ Bölgesi", "Hatay / Samandağ", "Tarım, Turizm ve Hizmet"),
+    ("Kırıkhan Bölgesi Açık Pozisyonları", "Kırıkhan Bölgesi", "Hatay / Kırıkhan", "Tarım, İmalat ve Ticaret"),
+    ("Reyhanlı Bölgesi Açık Pozisyonlar", "Reyhanlı Bölgesi", "Hatay / Reyhanlı", "Tarım, Lojistik ve Ticaret"),
+    ("Arsuz Bölgesi Açık Pozisyonlar", "Arsuz Bölgesi", "Hatay / Arsuz", "Turizm, Hizmet ve Tarım"),
+    ("Payas Bölgesi Açık Pozisyonlar", "Payas Bölgesi", "Hatay / Payas", "Ağır Sanayi, Metal ve Lojistik"),
+    ("Erzin Bölgesi Açık Pozisyonları", "Erzin Bölgesi", "Hatay / Erzin", "Narenciye, Sanayi ve Turizm"),
+    ("Altınözü Bölgesi Açık Pozisyonları", "Altınözü Bölgesi", "Hatay / Altınözü", "Zeytincilik, Tarım ve Hizmet"),
+    ("Hassa Bölgesi Açık Pozisyonlar", "Hassa Bölgesi", "Hatay / Hassa", "Tarım, Madencilik ve İmalat"),
+    ("Belen Bölgesi Açık Pozisyonlar", "Belen Bölgesi", "Hatay / Belen", "Lojistik, Ulaşım ve Hizmet"),
+    ("Yayladağı Bölgesi Açık Pozisyonlar", "Yayladağı Bölgesi", "Hatay / Yayladağı", "Tarım, Hayvancılık ve Ticaret"),
+    ("Kumlu Bölgesi Açık Pozisyonlar", "Kumlu Bölgesi", "Hatay / Kumlu", "Tarım ve Hayvancılık")
 ]
 
 def sync_district_portals():
